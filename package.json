@@ -1,0 +1,23 @@
+{
+  "name": "party-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsc --watch & nodemon bot.js",
+    "nodemon": "nodemon bot.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module",
+  "devDependencies": {
+    "nodemon": "^3.1.11",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.19",
+    "dotenv": "^17.2.4",
+    "grammy": "^1.39.3"
+  }
+}
