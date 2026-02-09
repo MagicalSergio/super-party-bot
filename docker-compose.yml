@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    image: my-node-app
+    container_name: my-node
+    ports:
+      - "3000:3000"

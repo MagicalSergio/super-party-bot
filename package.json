@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsc --watch & nodemon dist",
-    "build": "tsc"
+    "build": "tsc",
+    "start": "node ./dist/index"
   },
   "author": "",
   "license": "ISC",
