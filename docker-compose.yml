@@ -3,7 +3,7 @@ version: "3.9"
 services:
   app:
     build: .
-    image: my-node-app
-    container_name: my-node
+    image: party-bot
+    container_name: party-bot-server
     ports:
       - "3000:3000"
