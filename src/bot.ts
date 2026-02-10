@@ -2,31 +2,28 @@ import { Bot } from "grammy";
 import dayjs from 'dayjs';
 import { ENounWords } from './utils/ENounWords.js';
 import { calcDaysTo } from './utils/calcDaysTo.js';
+import { SPRING_DATE } from './const.js';
+import { scheduleAction } from './utils/scheduleAction.js';
 
 export async function startBot() {
     const bot = new Bot(process.env.TG_API_KEY!);
-
     bot.start();
+    print();
 
-    let prev = dayjs();
+    const now = dayjs();
+    const nextDay = now.clone().hour(0).minute(0).second(0).millisecond(0).add(1, 'day');
 
-    await print();
-
-    while (true) {
-        const now = dayjs();
-        if (now.date() !== prev.date()) {
-            prev = now;
-            try {
-                await print();
-            } catch (e) {
-                console.error(e);
-            }
-        }
+    let clear: () => void;
+    const action = () => {
+        clear();
+        print();
+        clear = scheduleAction(dayjs().add(1, 'day'), action);
     }
 
+    clear = scheduleAction(nextDay, action);
+
     async function print() {
-        const springDate = dayjs('2026-03-01');
-        const days = calcDaysTo(springDate);
-        return bot.api.sendMessage(process.env.CHAT_ID!, `До весны осталось ${days} ${ENounWords.getNoun(days, ENounWords.Day)}.`);
+        const days = calcDaysTo(dayjs(SPRING_DATE));
+        bot.api.sendMessage(process.env.CHAT_ID!, `До весны осталось ${days} ${ENounWords.getNoun(days, ENounWords.Day)}.`);
     }
 }
