@@ -11,6 +11,7 @@ export async function startBot() {
 
     const now = dayjs();
     const nextDay = now.clone().hour(0).minute(0).second(0).millisecond(0).add(1, 'day');
+    print();
 
     let clear: () => void;
     const action = () => {
