@@ -11,7 +11,6 @@ export async function startBot() {
 
     const now = dayjs();
     const nextDay = now.clone().hour(0).minute(0).second(0).millisecond(0).add(1, 'day');
-    print();
 
     let clear: () => void;
     const action = () => {
@@ -23,7 +22,7 @@ export async function startBot() {
     clear = scheduleAction(nextDay, action);
 
     async function print() {
-        const days = calcDaysTo(dayjs(SPRING_DATE));
+        const days = calcDaysTo(dayjs(SPRING_DATE)) + 1; // плюс текущий
         bot.api.sendMessage(process.env.CHAT_ID!, `До весны осталось ${days} ${ENounWords.getNoun(days, ENounWords.Day)}.`);
     }
 }
