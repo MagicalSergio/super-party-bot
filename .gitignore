@@ -1,5 +1,6 @@
 .idea
 .env
+.env.examples
 node_modules
 data.txt
 *.ts.map
