@@ -1,4 +1,8 @@
 import 'dotenv/config';
-import { startBot } from './src/bot.js';
+import { PartyBot } from './src/PartyBot.js';
 
-startBot();
+function main() {
+    new PartyBot(process.env.TG_API_KEY!);
+}
+
+main();
