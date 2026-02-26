@@ -13,8 +13,8 @@ export class PartyBot<C extends Context = Context> {
         return this._bot;
     }
 
-    constructor(token: string, config?: BotConfig<C>) {
-        this._bot = new Bot(token, config);
+    constructor() {
+        this._bot = new Bot(process.env.TG_API_KEY!);
         this.startSeasonCron();
     }
 
