@@ -1,6 +1,5 @@
-import type { Dayjs } from 'dayjs';
-import { calcDaysTo } from './utils/calcDaysTo.js';
-import dayjs from './utils/dayjs.js';
+import { DateTime } from 'luxon';
+import { TIMEZONE } from './const.js';
 
 export type SeasonType = 'winter' | 'spring' | 'summer' | 'autumn';
 
@@ -19,10 +18,10 @@ interface SeasonForms {
 
 export abstract class SeasonHandler {
     public static readonly MONTHS_SEASONS: Record<SeasonType, number[]> = {
-        winter: [11, 0, 1],
-        spring: [2, 3, 4],
-        summer: [5, 6, 7],
-        autumn: [8, 9, 10],
+        winter: [12, 1, 2],
+        spring: [3, 4, 5],
+        summer: [6, 7, 8],
+        autumn: [9, 10, 11],
     }
 
     public static readonly MONTHS_INDEXES: Record<number, SeasonType> = {
@@ -58,10 +57,19 @@ export abstract class SeasonHandler {
         autumn: 'Поздравляем... слякотоёбов? Ну мб кому-то это и нравится.',
     }
 
-    private static date: Dayjs;
+    public static readonly SEASON_EMOJIS: Record<SeasonType, string> = {
+        winter: '⛄️',
+        spring: '🌷',
+        summer: '☀️🌻',
+        autumn: '🍁🍂',
+    };
 
-    public static getSeasonInfo(date: Dayjs): SeasonsInfo {
-        SeasonHandler.date = date;
+    private static date: string;
+
+    public static getSeasonInfo(dateISO: string): SeasonsInfo {
+        SeasonHandler.date = dateISO;
+
+        const date = DateTime.fromISO(dateISO).setZone(TIMEZONE);
 
         const curSeasonIndex = SeasonHandler.getCurrentSeasonIndex();
         const curSeason = curSeasonIndex != null
@@ -73,17 +81,10 @@ export abstract class SeasonHandler {
             ? SeasonHandler.MONTHS_INDEXES[nextSeasonIndex] ?? null
             : null;
 
-        let daysUntilNextSeason = null;
+        let daysUntilNextSeason: number | null = null;
         if (nextSeason) {
-            const to = dayjs()
-                .millisecond(0)
-                .second(0)
-                .minute(0)
-                .hour(0)
-                .date(1)
-                .month(SeasonHandler.MONTHS_SEASONS[nextSeason][0]!)
-
-            daysUntilNextSeason = calcDaysTo(to);
+            const to = date.set({ month: SeasonHandler.MONTHS_SEASONS[nextSeason][0] }).startOf('month');
+            daysUntilNextSeason = Math.ceil(to.diff(date, 'days').days);
         }
 
         return {
@@ -96,10 +97,10 @@ export abstract class SeasonHandler {
     }
 
     private static getCurrentSeasonIndex(): number | null {
-        const now = dayjs(this.date);
+        const now = DateTime.fromISO(this.date).setZone(TIMEZONE);
         let index: number | null = null
         Object.keys(SeasonHandler.MONTHS_SEASONS).forEach((seasonType) => {
-            if (SeasonHandler.MONTHS_SEASONS[seasonType as SeasonType].includes(now.month())) {
+            if (SeasonHandler.MONTHS_SEASONS[seasonType as SeasonType].includes(now.month)) {
                 Object.entries(SeasonHandler.MONTHS_INDEXES).forEach(([key, val]) => {
                     if (val === seasonType) {
                         index = Number(key);
