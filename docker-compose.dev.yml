@@ -2,8 +2,10 @@ services:
   app:
     build: .
     image: party-bot
-    container_name: party-bot-server
+    container_name: party-bot-server-test
     volumes:
+      - "./src:/app/src"
       - "./data:/app/data"
     ports:
       - "3000:3000"
+    command: ["npm", "run", "dev"]
