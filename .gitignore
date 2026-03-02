@@ -6,3 +6,4 @@ data.txt
 *.ts.map
 *.js.map
 dist
+data
