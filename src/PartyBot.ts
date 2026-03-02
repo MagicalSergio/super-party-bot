@@ -28,7 +28,10 @@ export class PartyBot<C extends Context = Context> {
             .catch((e) => console.error('Something bad happened: ', e));
 
         this.startSeasonCron();
-        this.bindTestCommand();
+
+        if (process.env.BIND_TEST) {
+            this.bindTestCommand();
+        }
     }
 
     private startSeasonCron() {
