@@ -14,7 +14,7 @@ export class PartyBotAPI {
             res.send('Hello World!');
         });
 
-        app.listen(port, () => {
+        app.listen(port, '0.0.0.0', () => {
             console.log('Party Bot API');
             console.log(`Start listening on ${port}`);
         });
