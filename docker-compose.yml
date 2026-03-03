@@ -1,3 +1,5 @@
+name: party-prod
+
 services:
   app:
     build: .
@@ -6,4 +8,4 @@ services:
     volumes:
       - "./data:/app/data"
     ports:
-      - "3000:3000"
+      - "80:3000"
