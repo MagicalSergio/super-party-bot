@@ -29,8 +29,6 @@ export class PartyBot<C extends Context = Context> {
 
         this.startSeasonCron();
 
-        console.log('process.env.BIND_TEST: ', process.env.BIND_TEST);
-        console.log('process.env.CHAT_ID: ', process.env.CHAT_ID);
         if (process.env.BIND_TEST) {
             this.bindTestCommand();
         }
