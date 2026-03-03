@@ -80,11 +80,11 @@ export class PartyBot<C extends Context = Context> {
                     return;
                 }
 
-                const season = SeasonHandler.getSeasonInfo(nowISO).curSeason;
-                if (!season) return;
+                const seasonInfo = SeasonHandler.getSeasonInfo(nowISO);
+                if (!seasonInfo.curSeason || !seasonInfo.nextSeason) return;
 
-                await this.seasonCongratulate(season);
-                await this.createSeasonPoll(season);
+                await this.seasonCongratulate(seasonInfo.curSeason);
+                await this.createSeasonPoll(seasonInfo.nextSeason);
             } catch (e) {
                 console.error('Season changed job failed!');
             }
