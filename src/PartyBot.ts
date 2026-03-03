@@ -166,7 +166,7 @@ export class PartyBot<C extends Context = Context> {
         await dbSeasonPoll.save();
     }
 
-    private async sendMessage(msg: string) {
+    public async sendMessage(msg: string) {
         try {
             return await this._bot.api.sendMessage(process.env.CHAT_ID!, msg);
         } catch (e) {
