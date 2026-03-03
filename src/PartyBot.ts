@@ -29,6 +29,8 @@ export class PartyBot<C extends Context = Context> {
 
         this.startSeasonCron();
 
+        console.log('process.env.BIND_TEST: ', process.env.BIND_TEST);
+        console.log('process.env.CHAT_ID: ', process.env.CHAT_ID);
         if (process.env.BIND_TEST) {
             this.bindTestCommand();
         }
@@ -60,7 +62,7 @@ export class PartyBot<C extends Context = Context> {
 
                 const seasonSchedule = await SeasonScheduleNotify.findByDate(nowISO);
                 if (!seasonSchedule) {
-                    return await this.createSeasonPoll(SeasonHandler.getSeasonInfo(nowISO).curSeason!);
+                    return await this.createSeasonPoll(SeasonHandler.getSeasonInfo(nowISO).nextSeason!);
                 }
 
                 if (!seasonChanged) {
