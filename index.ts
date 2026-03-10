@@ -10,7 +10,7 @@ import { AIPersonalityEntity } from './src/modules/AIModel/entity/AIPersonality.
 async function main() {
     const bot = new PartyBot();
 
-    const person = await AIPersonalityEntity.getBySysname('party-bot-test');
+    const person = await AIPersonalityEntity.getBySysname('party-bot');
 
     if (person) {
         bot.attachAIPersonality(new XAIPerson({
