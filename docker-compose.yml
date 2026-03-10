@@ -1,11 +1,14 @@
-name: party-prod
+name: ${DOCKER_COMPOSE_NAME}
 
 services:
   app:
     build: .
     image: party-bot
-    container_name: party-bot-server
+    container_name: ${CONTAINER_NAME}
+    env_file:
+      - .env
     volumes:
       - "./data:/app/data"
     ports:
-      - "127.0.0.1:3000:3000"
+      - "${HOST_PORT}:3000"
+    command: ["/entrypoint.sh"]

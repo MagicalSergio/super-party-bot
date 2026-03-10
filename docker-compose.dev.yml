@@ -1,13 +1,16 @@
-name: party-dev
+name: ${DOCKER_COMPOSE_NAME}
 
 services:
   app:
     build: .
-    image: party-bot-test
-    container_name: party-bot-server-test
+    image: party-bot
+    container_name: ${CONTAINER_NAME}
+    env_file:
+      - .env
     volumes:
       - "./src:/app/src"
       - "./data:/app/data"
+      - "./index.ts:/app/index.ts"
     ports:
-      - "8080:3000"
-    command: ["npm", "run", "dev"]
+      - "${HOST_PORT}:3000"
+    command: ["/entrypoint.dev.sh"]

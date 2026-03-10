@@ -6,6 +6,13 @@ interface APISendMessageBody {
     msg?: string;
 }
 
+interface APIPostAIModelBody {
+    tg_api_key?: string;
+    instructions?: string;
+    model?: string;
+    sysname?: string;
+}
+
 export class PartyBotAPI {
     private bot: PartyBot;
 
@@ -37,6 +44,24 @@ export class PartyBotAPI {
             } catch (e) {
                 console.error('Failed to send message: ', e);
                 res.status(500).json({ success: false, message: 'something went wrong' });
+            }
+        });
+
+        app.post('/ai-model/', async (req, res) => {
+            try {
+                const { instructions, model, sysname, tg_api_key } = req.body as APIPostAIModelBody;
+
+                if (!instructions || !model || !sysname) {
+                    return res.status(400).json({ success: false, message: 'props required' });
+                }
+
+                if (tg_api_key !== process.env.TG_API_KEY!) {
+                    return res.status(400).json({ success: false, message: 'wrong tg api key' });
+                }
+
+                
+            } catch (e) {
+                console.error('Failed to create ai model entity');
             }
         });
     }
