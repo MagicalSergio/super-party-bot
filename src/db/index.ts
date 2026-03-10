@@ -17,7 +17,7 @@ const AppDataSource = new DataSource({
         XAIResponseHistoryEntity,
         MessageEntity,
     ],
-    synchronize: true,
+    synchronize: process.env.MODE === 'dev',
 });
 
 try {

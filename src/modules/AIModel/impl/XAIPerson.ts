@@ -77,7 +77,7 @@ export class XAIPerson implements IAIPerson {
     private async savePreviousResponseId(id: string) {
         const response = XAIResponseHistoryEntity.create();
         response.date_created = DateTime.now().setZone(TIMEZONE).toISO()!;
-        response.model_sysname = this.sysname;
+        response.personality_sysname = this.sysname;
         response.response_id = id;
         await response.save();
     }

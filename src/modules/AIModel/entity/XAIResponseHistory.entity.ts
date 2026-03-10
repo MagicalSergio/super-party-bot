@@ -9,14 +9,14 @@ export class XAIResponseHistoryEntity extends BaseEntity {
     response_id: string;
 
     @Column()
-    model_sysname: string;
+    personality_sysname: string;
 
     @Column()
     date_created: string;
 
-    static async getLastResponseId(modelSysname: string) {
+    static async getLastResponseId(sysname: string) {
         return await this.findOne({
-            where: { model_sysname: modelSysname },
+            where: { personality_sysname: sysname },
             order: { id: 'DESC' },
         });
     }

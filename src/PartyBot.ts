@@ -12,6 +12,7 @@ import type { Context, Api, RawApi } from 'grammy';
 import type { Message } from 'grammy/types';
 import type { IAIPerson } from './modules/AIModel/interfaces/IAIPerson.js';
 import { AIPersonalityEntity } from './modules/AIModel/entity/AIPersonality.entity.js';
+import { MessageEntity } from './entity/Message.entity.js';
 
 interface SeasonPollOptions {
     text: string;
@@ -74,6 +75,16 @@ export class PartyBot<C extends Context = Context> {
 
     private initOnMessage() {
         this.bot.on('message', async (ctx) => {
+            // todo: implement queue
+            // Save message into DB
+            const msg = MessageEntity.create();
+            msg.message_id = ctx.msgId;
+            msg.chat_id = ctx.chat.id;
+            msg.from_username = ctx.message.from.username || '';
+            msg.date = DateTime.now().setZone(TIMEZONE).toISO()!;
+            msg.json = JSON.stringify(ctx.message);
+            await msg.save();
+
             // AI Job
             const mentions = this.extractMentionsUsernames(ctx.message);
             const message = this.dropMentionsFromMessage(ctx.message);

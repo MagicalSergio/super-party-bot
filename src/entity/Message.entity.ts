@@ -12,10 +12,10 @@ export class MessageEntity extends BaseEntity {
     chat_id: number;
 
     @Column()
-    from_id: number;
+    from_username: string;
 
     @Column()
-    date: number;
+    date: string;
 
     @Column()
     json: string;
