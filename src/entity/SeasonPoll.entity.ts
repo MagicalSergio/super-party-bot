@@ -1,7 +1,7 @@
-import { BaseEntity, Column, Entity, ForeignKey, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
-export class SeasonPoll extends BaseEntity {
+export class SeasonPollEntity extends BaseEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -11,7 +11,7 @@ export class SeasonPoll extends BaseEntity {
     @Column({ default: false })
     is_processed: boolean;
 
-    static async getUnprocessed(): Promise<SeasonPoll[]> {
+    static async getUnprocessed(): Promise<SeasonPollEntity[]> {
         return this.createQueryBuilder('seasonPoll')
             .where('seasonPoll.is_processed = :isProcessed', { isProcessed: false })
             .getMany();

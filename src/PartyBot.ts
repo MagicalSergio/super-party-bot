@@ -1,14 +1,17 @@
-import { Bot } from 'grammy';
 import cron from 'node-cron';
+import { Bot } from 'grammy';
 import { TIMEZONE } from './const.js';
 import { SeasonHandler } from './SeasonHandler.js';
-import { Poll } from './entity/Poll.js';
-import { SeasonPoll } from './entity/SeasonPoll.js';
-import type { SeasonType } from './SeasonHandler.js';
-import type { Context, Api, RawApi } from 'grammy';
-import { SeasonScheduleNotify } from './entity/SeasonScheduleNotify.js';
+import { PollEntity } from './entity/Poll.entity.js';
+import { SeasonPollEntity } from './entity/SeasonPoll.entity.js';
+import { SeasonScheduleNotifyEntity } from './entity/SeasonScheduleNotify.entity.js';
 import { DateTime } from 'luxon';
 import { pluralize } from './utils/pluralize.js';
+import type { SeasonType } from './SeasonHandler.js';
+import type { Context, Api, RawApi } from 'grammy';
+import type { Message } from 'grammy/types';
+import type { IAIPerson } from './modules/AIModel/interfaces/IAIPerson.js';
+import { AIPersonalityEntity } from './modules/AIModel/entity/AIPersonality.entity.js';
 
 interface SeasonPollOptions {
     text: string;
@@ -16,22 +19,70 @@ interface SeasonPollOptions {
 }
 
 export class PartyBot<C extends Context = Context> {
-    private _bot: Bot<C, Api<RawApi>>;
-    get bot(): Bot<C, Api<RawApi>> {
-        return this._bot;
-    }
+    private bot: Bot<C, Api<RawApi>>;
+    private aiPerson: IAIPerson | undefined;
 
     constructor() {
-        this._bot = new Bot(process.env.TG_API_KEY!);
-        this._bot
-            .start()
-            .catch((e) => console.error('Something bad happened: ', e));
-
-        this.startSeasonCron();
+        this.bot = new Bot(process.env.TG_API_KEY!);
 
         if (process.env.BIND_TEST) {
             this.bindTestCommand();
         }
+
+        this.initOnMessage();
+
+        this.bot
+            .start()
+            .catch((e) => console.error('Something bad happened: ', e));
+
+        this.startSeasonCron();
+    }
+
+    public attachAIPersonality(person: IAIPerson) {
+        this.aiPerson = person;
+    }
+
+    public async sendMessage(msg: string) {
+        try {
+            return await this.bot.api.sendMessage(process.env.CHAT_ID!, msg);
+        } catch (e) {
+            console.error('Error while sending message: ', e);
+        }
+    }
+
+    private extractMentionsUsernames(message: Message): string[] {
+        if (!message.text || !message.entities) {
+            return [];
+        }
+
+        return message.entities.filter((e) => e.type === 'mention').map((m) => {
+            return message.text!.slice(m.offset, m.offset + m.length).replace('@', '');
+        });
+    }
+
+    private dropMentionsFromMessage(message: Message): string {
+        if (!message.text) {
+            return '';
+        }
+
+        if (!message.entities) {
+            return message.text;
+        }
+
+        return message.text.replace(/@\S+/gm, '').trim();
+    }
+
+    private initOnMessage() {
+        this.bot.on('message', async (ctx) => {
+            // AI Job
+            const mentions = this.extractMentionsUsernames(ctx.message);
+            const message = this.dropMentionsFromMessage(ctx.message);
+            if (mentions.includes(this.bot.botInfo.username) && this.aiPerson) {
+                const personResponse = await this.aiPerson.response(message);
+                if (!personResponse) return await this.sendMessage('Извините, ошибка...');
+                await this.sendMessage(personResponse);
+            }
+        });
     }
 
     private startSeasonCron() {
@@ -58,7 +109,7 @@ export class PartyBot<C extends Context = Context> {
                     return;
                 }
 
-                const seasonSchedule = await SeasonScheduleNotify.findByDate(nowISO);
+                const seasonSchedule = await SeasonScheduleNotifyEntity.findByDate(nowISO);
                 if (!seasonSchedule) {
                     return await this.createSeasonPoll(SeasonHandler.getSeasonInfo(nowISO).nextSeason!);
                 }
@@ -107,7 +158,7 @@ export class PartyBot<C extends Context = Context> {
             + `${pluralize(daysUntilNextSeason, ["день", "дня", "дней"])}! `
             + `${SeasonHandler.SEASON_EMOJIS[nextSeason]}`;
 
-        const currentSchedule = await SeasonScheduleNotify.findByDate(dateISO);
+        const currentSchedule = await SeasonScheduleNotifyEntity.findByDate(dateISO);
         if (!currentSchedule) {
             await this.sendMessage(msg);
             return;
@@ -148,7 +199,7 @@ export class PartyBot<C extends Context = Context> {
 
         if (!poll) return;
 
-        const dbPoll = new Poll();
+        const dbPoll = new PollEntity();
         dbPoll.options = JSON.stringify(options);
         dbPoll.message_id = poll.message_id;
 
@@ -161,22 +212,14 @@ export class PartyBot<C extends Context = Context> {
         dbPoll.until_date = untilISO;
         await dbPoll.save();
 
-        const dbSeasonPoll = new SeasonPoll();
+        const dbSeasonPoll = new SeasonPollEntity();
         dbSeasonPoll.poll_id = dbPoll.id;
         await dbSeasonPoll.save();
     }
 
-    public async sendMessage(msg: string) {
-        try {
-            return await this._bot.api.sendMessage(process.env.CHAT_ID!, msg);
-        } catch (e) {
-            console.error('Error while sending message: ', e);
-        }
-    }
-
     private async sendPoll(msg: string, options: SeasonPollOptions[]) {
         try {
-            return await this._bot.api.sendPoll(process.env.CHAT_ID!, msg, options);
+            return await this.bot.api.sendPoll(process.env.CHAT_ID!, msg, options);
         } catch (e) {
             console.error('Error while sending poll: ', e);
         }
@@ -184,14 +227,14 @@ export class PartyBot<C extends Context = Context> {
 
     private async stopPoll(message_id: number) {
         try {
-            return await this._bot.api.stopPoll(process.env.CHAT_ID!, message_id);
+            return await this.bot.api.stopPoll(process.env.CHAT_ID!, message_id);
         } catch (e) {
             console.error('Error while stopping poll', e)
         }
     }
 
     private async processPolls() {
-        const polls = await Poll.getExpired();
+        const polls = await PollEntity.getExpired();
 
         for (const p of polls) {
             const poll = await this.stopPoll(p.message_id);
@@ -209,17 +252,17 @@ export class PartyBot<C extends Context = Context> {
     }
 
     private async processSeasonPolls() {
-        const unprocessedSeasonPolls = await SeasonPoll.getUnprocessed();
+        const unprocessedSeasonPolls = await SeasonPollEntity.getUnprocessed();
 
         for (const p of unprocessedSeasonPolls) {
-            const poll = await Poll.findOneBy({ id: p.poll_id });
+            const poll = await PollEntity.findOneBy({ id: p.poll_id });
 
             if (!poll) {
                 console.warn('Process season polls: poll not found!');
                 return;
             }
 
-            const ssn = new SeasonScheduleNotify();
+            const ssn = new SeasonScheduleNotifyEntity();
 
             const options = JSON.parse(poll.options) as SeasonPollOptions[];
             ssn.periodicity = options[poll.win_index]!.periodicity;
@@ -254,24 +297,86 @@ export class PartyBot<C extends Context = Context> {
     }
 
     private bindTestCommand() {
-        this._bot.command('test', async () => {
+        this.bot.command('cm', async () => {
+            try {
+                const person = AIPersonalityEntity.create();
+                person.name = 'ПатиБот';
+                person.model = 'grok-4-1-fast-non-reasoning';
+                person.instructions = 'Ты - ПатиБот. Бот для теста';
+                person.sysname = 'party-bot-test';
+                await person.save();
+                await this.sendMessage('Персона создана');
+            } catch (e) {
+                console.error(e);
+            }
+        });
+
+        this.bot.command('db', async () => {
+            const rslt = await AIPersonalityEntity.find();
+            console.log('rslt: ', rslt);
+        });
+
+        this.bot.command('test', async () => {
             await this.createSeasonPoll('summer');
         });
 
-        this._bot.command('pp', async () => {
+        this.bot.command('pp', async () => {
             await this.processPolls();
         });
 
-        this._bot.command('psp', async () => {
+        this.bot.command('psp', async () => {
             await this.processSeasonPolls();
         });
 
-        this._bot.command('d', async () => {
+        this.bot.command('d', async () => {
             await this.seasonCountdown('2026-05-31T15:00:00.000+03:00');
         });
 
-        this._bot.command('e', async () => {
+        this.bot.command('e', async () => {
             await this.sendMessage('Hi! ☀️🌻');
         });
+
+        this.bot.command('pzdc', async (ctx) => {
+            await this.sendMessage('Hi! ☀️🌻');
+        });
+
+        this.bot.command('ai', async (ctx) => {
+            if (!this.aiPerson) return;
+
+            const response = await this.aiPerson.response(ctx.match);
+            if (!response) {
+                console.warn('Error requesting AI model response');
+                return;
+            }
+            await this.sendMessage(response);
+        });
+
+        this.bot.command('js', async () => {
+            async function shortPromise() {
+                return await new Promise((res) => {
+                    setTimeout(() => {
+                        console.log('short promise resolve');
+                        res('short promise resolved');
+                    }, 100);
+                });
+            }
+
+            async function longPromise() {
+                return await new Promise((res) => {
+                    setTimeout(() => {
+                        console.log('long promise resolve');
+                        res('long promise resolved');
+                    }, 1000);
+                });
+            }
+
+            const arr = [longPromise, shortPromise];
+
+            let i = 0;
+            while(arr[i]) {
+                await arr[i]!();
+                i++;
+            }
+        })
     }
 }

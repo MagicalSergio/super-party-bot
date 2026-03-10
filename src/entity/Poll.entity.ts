@@ -3,7 +3,7 @@ import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 import { TIMEZONE } from '../const.js';
 
 @Entity()
-export class Poll extends BaseEntity {
+export class PollEntity extends BaseEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -19,7 +19,7 @@ export class Poll extends BaseEntity {
     @Column()
     until_date: string;
 
-    static async getExpired(): Promise<Poll[]> {
+    static async getExpired(): Promise<PollEntity[]> {
         return this.createQueryBuilder("poll")
             .where("poll.win_index = :winIndex", { winIndex: -1 })
             .andWhere("poll.until_date <= :now", { now: DateTime.now().setZone(TIMEZONE).toISO() })

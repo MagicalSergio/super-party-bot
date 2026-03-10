@@ -1,7 +1,7 @@
 import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
-export class SeasonScheduleNotify extends BaseEntity {
+export class SeasonScheduleNotifyEntity extends BaseEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -14,7 +14,7 @@ export class SeasonScheduleNotify extends BaseEntity {
     @Column()
     periodicity: number;
 
-    static async findByDate(date: string): Promise<SeasonScheduleNotify | null> {
+    static async findByDate(date: string): Promise<SeasonScheduleNotifyEntity | null> {
         return this.createQueryBuilder("s")
             .where("s.start_date <= :date AND s.end_date >= :date", { date })
             .getOne();

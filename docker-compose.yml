@@ -5,7 +5,10 @@ services:
     build: .
     image: party-bot
     container_name: party-bot-server
+    env_file:
+      - .env
     volumes:
       - "./data:/app/data"
     ports:
       - "127.0.0.1:3000:3000"
+    command: ["/entrypoint.sh"]
