@@ -19,7 +19,7 @@ async function main() {
     const bot = new PartyBot();
     await bot.init();
 
-    const person = await AIPersonalityEntity.getBySysname(process.env.MODE === 'prod' ? 'party-bot-context' : 'party-bot-context-test');
+    const person = await AIPersonalityEntity.getBySysname(process.env.AI_PERSONALITY_SYSNAME || '');
 
     if (person) {
         bot.attachAIPersonality(new XAIPerson({
