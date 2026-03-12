@@ -10,7 +10,7 @@ import { XAIProcessedMessageEntity } from '../modules/AIModel/entity/XAIProcesse
 
 const AppDataSource = new DataSource({
     type: 'better-sqlite3',
-    database: resolve(process.argv[1]!, '../data/app.db'),
+    database: resolve(import.meta.dirname, '../../data/app.db'),
     entities: [
         PollEntity,
         SeasonPollEntity,
