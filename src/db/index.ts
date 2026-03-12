@@ -21,7 +21,7 @@ const AppDataSource = new DataSource({
         XAIProcessedMessageEntity,
     ],
     synchronize: false,
-    migrations: [import.meta.dirname + '/migrations/**/*{.js,.ts}'],
+    migrations: [import.meta.dirname + '/migrations/*{.js,.ts}'],
     migrationsRun: false,
     migrationsTableName: 'migrations',
     migrationsTransactionMode: 'all',
