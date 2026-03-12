@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { DataSource } from 'typeorm';
 import { PollEntity } from '../entity/Poll.entity.js';
 import { SeasonPollEntity } from '../entity/SeasonPoll.entity.js';
@@ -9,7 +10,7 @@ import { XAIProcessedMessageEntity } from '../modules/AIModel/entity/XAIProcesse
 
 const AppDataSource = new DataSource({
     type: 'better-sqlite3',
-    database: '/app/data/app.db',
+    database: resolve(process.argv[1]!, '../data/app.db'),
     entities: [
         PollEntity,
         SeasonPollEntity,
@@ -20,16 +21,10 @@ const AppDataSource = new DataSource({
         XAIProcessedMessageEntity,
     ],
     synchronize: false,
-    migrations: [import.meta.dirname + '/migration/**/*{.js,.ts}'],
-    migrationsRun: true,
+    migrations: [import.meta.dirname + '/migrations/**/*{.js,.ts}'],
+    migrationsRun: false,
     migrationsTableName: 'migrations',
-    migrationsTransactionMode: 'all'
+    migrationsTransactionMode: 'all',
 });
-
-try {
-    await AppDataSource.initialize();
-} catch (e) {
-    console.error('DB error: ', e);
-}
 
 export { AppDataSource };
