@@ -9,8 +9,9 @@ import { AIPersonalityEntity } from './src/modules/AIModel/entity/AIPersonality.
 
 async function main() {
     const bot = new PartyBot();
+    await bot.init();
 
-    const person = await AIPersonalityEntity.getBySysname('party-bot');
+    const person = await AIPersonalityEntity.getBySysname(process.env.MODE === 'prod' ? 'party-bot' : 'party-bot-test');
 
     if (person) {
         bot.attachAIPersonality(new XAIPerson({
@@ -18,6 +19,7 @@ async function main() {
             name: person.name,
             model: person.model,
             instructions: person.instructions,
+            username: bot.bot.botInfo.username,
         }));
     }
 

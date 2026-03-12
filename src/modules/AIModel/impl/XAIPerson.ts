@@ -3,23 +3,34 @@ import { XAIResponseHistoryEntity } from '../entity/XAIResponseHistory.entity.js
 import { TIMEZONE } from '../../../const.js';
 import type { IAIPerson } from '../interfaces/IAIPerson.js';
 import { proxiedFetch } from '../../../utils/proxiedFetch.js';
+import { MessageEntity } from '../../../entity/Message.entity.js';
+import { XAIProcessedMessageEntity } from '../entity/XAIProcessedMessage.entity.js';
 
-interface IXAiPersonConstructorArgs {
+interface IXAIPersonConstructorArgs {
     sysname: string;
     name: string;
     instructions: string;
     model: string;
+    username: string;
 }
 
-interface IXAiAPIResponsesBody {
+interface IXAIAPIResponsesBody {
     model: string;
     input: string;
     instructions?: string | undefined;
     previous_response_id?: string;
 }
 
-interface IResponseAdditionalCtx {
-    from: string;
+interface IXAIMessageContext {
+    from: {
+        firstName?: string;
+        lastName?: string;
+        username?: string;
+        date?: string;
+    };
+    replyBotMessage?: {
+        text: string;
+    };
 }
 
 export class XAIPerson implements IAIPerson {
@@ -27,18 +38,35 @@ export class XAIPerson implements IAIPerson {
     private name: string;
     private model: string;
     private instructions: string;
+    private username: string;
 
-    constructor(opts: IXAiPersonConstructorArgs) {
+    private static RESPONSE_URL = 'https://api.x.ai/v1/responses';
+
+    constructor(opts: IXAIPersonConstructorArgs) {
         this.sysname = opts.sysname;
         this.name = opts.name;
         this.model = opts.model;
         this.instructions = opts.instructions;
+        this.username = opts.username;
     }
 
-    public async response(msg: string, additionalCtx?: IResponseAdditionalCtx): Promise<string | null> {
+    public async response(msg: string, msgContext: IXAIMessageContext): Promise<string | null> {
         try {
-            const body: IXAiAPIResponsesBody = {
-                input: msg,
+            await this.updateContextHistory();
+            const result = await this.requestResponse(this.formMessage(msg, msgContext));
+            if (!result) return null;
+            await this.savePreviousResponseId(result.id);
+            return result.response;
+        } catch (e) {
+            console.error('xAi response request error: ', e);
+            return null;
+        }
+    }
+
+    private async requestResponse(message: string): Promise<{ response: string, id: string } | null> {
+        try {
+            const body: IXAIAPIResponsesBody = {
+                input: message,
                 model: this.model,
             };
 
@@ -49,7 +77,7 @@ export class XAIPerson implements IAIPerson {
                 body.instructions = this.instructions ?? undefined;
             }
 
-            const result = await proxiedFetch('https://api.x.ai/v1/responses', {
+            const result = await proxiedFetch(XAIPerson.RESPONSE_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -65,11 +93,12 @@ export class XAIPerson implements IAIPerson {
 
             const parsedResult = await result.json() as any;
 
-            await this.savePreviousResponseId(parsedResult.id);
-        
-            return parsedResult.output[0].content[0].text;
+            return {
+                id: parsedResult.id,
+                response: parsedResult.output[0].content[0].text,
+            };
         } catch (e) {
-            console.error('xAi response request error: ', e);
+            console.error('Error requesting response from model: ', e);
             return null;
         }
     }
@@ -80,5 +109,77 @@ export class XAIPerson implements IAIPerson {
         response.personality_sysname = this.sysname;
         response.response_id = id;
         await response.save();
+    }
+
+    private async updateContextHistory() {
+        const lastProcessedDate = await XAIProcessedMessageEntity.getLastDateProcessed(this.sysname);
+        const unprocessedMessages = (lastProcessedDate
+            ? await MessageEntity.getSince(lastProcessedDate)
+            : await MessageEntity.getLast(100))
+            .filter((msg) => msg.from_username !== this.username);
+
+        try {
+            let prompt = '*** Это системное сообщение для обновления твоего контекста ***\n'
+                + '*** Ответь на него "ok", запомни этот контекст ***\n'
+                + '*** (Начало системного сообщения) ***\n'
+                + '$$content$$\n'
+                + '*** (Конец системного сообщения)';
+
+            let contentItemTemplate = '---\n'
+                + '- Type: Message\n'
+                + '- From: username: $$username$$, first_name: $$first_name$$, last_name: $$last_name$$\n'
+                + '- Date (ISO): $$date$$\n'
+                + '- Message Content (START):\n'
+                + '$$text$$\n'
+                + '- Message Content (END)\n'
+                + '---';
+
+            let content = '';
+            for (const msg of unprocessedMessages) {
+                const data = msg.getData();
+
+                content += contentItemTemplate
+                    .replace('$$username$$', msg.from_username)
+                    .replace('$$first_name$$', String(data.from?.first_name))
+                    .replace('$$last_name$$', String(data.from?.last_name))
+                    .replace('$$date$$', msg.date)
+                    .replace('$$text$$', String(data.text));
+            }
+            prompt = prompt.replace('$$content$$', content);
+            await this.requestResponse(prompt);
+        } catch (e) {
+            console.error('Error processing context messages:', e);
+            return;
+        }
+
+        const entities: XAIProcessedMessageEntity[] = [];
+        for (const msg of unprocessedMessages) {
+            const processed = XAIProcessedMessageEntity.create();
+            processed.personality_sysname = this.sysname;
+            processed.message_id = msg.message_id;
+            processed.chat_id = msg.chat_id;
+            processed.date_processed = msg.date;
+            entities.push(processed);
+        }
+
+        await XAIProcessedMessageEntity.save(entities);
+    }
+
+    private formMessage(message: string, context: IXAIMessageContext) {
+        const prompt = '--- Системные данные ---\n'
+            + `Сообщение от: username: ${context.from.username}, firstName: ${context.from.firstName}, lastName: ${context.from.lastName}\n`
+            + `Дата: ${context.from.date}\n`
+            + (context.replyBotMessage
+                ? 'Это ответ на твоё сообщение, цитата:\n'
+                + `\"${context.replyBotMessage.text}\"\n`
+                : '')
+            + '--- Системные данные (END) ---\n\n'
+            + '--- Сообщение (START) ---\n'
+            + message
+            + '\n --- Сообщение (END) ---';
+
+        console.log('prompt: ', prompt);
+
+        return prompt;
     }
 }

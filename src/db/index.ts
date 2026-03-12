@@ -5,6 +5,7 @@ import { SeasonScheduleNotifyEntity } from '../entity/SeasonScheduleNotify.entit
 import { AIPersonalityEntity } from '../modules/AIModel/entity/AIPersonality.entity.js';
 import { XAIResponseHistoryEntity } from '../modules/AIModel/entity/XAIResponseHistory.entity.js';
 import { MessageEntity } from '../entity/Message.entity.js';
+import { XAIProcessedMessageEntity } from '../modules/AIModel/entity/XAIProcessedMessage.entity.js';
 
 const AppDataSource = new DataSource({
     type: 'better-sqlite3',
@@ -16,8 +17,13 @@ const AppDataSource = new DataSource({
         AIPersonalityEntity,
         XAIResponseHistoryEntity,
         MessageEntity,
+        XAIProcessedMessageEntity,
     ],
-    synchronize: process.env.MODE === 'dev',
+    synchronize: false,
+    migrations: [import.meta.dirname + '/migration/**/*{.js,.ts}'],
+    migrationsRun: true,
+    migrationsTableName: 'migrations',
+    migrationsTransactionMode: 'all'
 });
 
 try {
