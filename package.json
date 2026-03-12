@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "concurrently \"tsc --watch\" \"nodemon dist\"",
     "build": "tsc",
-    "start": "node ./dist/index",
+    "start": "node ./dist/",
     "typeorm": "typeorm-ts-node-esm",
     "migrations:generate": "typeorm-ts-node-esm migration:generate -d ./src/db/index.ts",
     "migrations:run": "typeorm-ts-node-esm migration:run -d ./src/db/index.ts",
