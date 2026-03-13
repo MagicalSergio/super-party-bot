@@ -80,6 +80,8 @@ export class PartyBot<C extends Context = Context> {
 
     private initOnMessage() {
         this.bot.on('message', async (ctx) => {
+            console.log('ctx: ', ctx);
+
             if (String(ctx.chatId) !== process.env.CHAT_ID!) {
                 return;
             }

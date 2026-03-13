@@ -21,6 +21,8 @@ async function main() {
 
     const person = await AIPersonalityEntity.getBySysname(process.env.AI_PERSONALITY_SYSNAME || '');
 
+    console.log('Attached person: ', person?.name);
+
     if (person) {
         bot.attachAIPersonality(new XAIPerson({
             sysname: person.sysname,

@@ -5,6 +5,7 @@ import type { IAIPerson } from '../interfaces/IAIPerson.js';
 import { proxiedFetch } from '../../../utils/proxiedFetch.js';
 import { MessageEntity } from '../../../entity/Message.entity.js';
 import { XAIProcessedMessageEntity } from '../entity/XAIProcessedMessage.entity.js';
+import { chunk } from 'lodash-es';
 
 interface IXAIPersonConstructorArgs {
     sysname: string;
@@ -53,10 +54,11 @@ export class XAIPerson implements IAIPerson {
     public async response(msg: string, msgContext: IXAIMessageContext): Promise<string | null> {
         try {
             await this.updateContextHistory();
-            const result = await this.requestResponse(this.formMessage(msg, msgContext));
-            if (!result) return null;
-            await this.savePreviousResponseId(result.id);
-            return result.response;
+            // const result = await this.requestResponse(this.formMessage(msg, msgContext));
+            return null;
+            // if (!result) return null;
+            // await this.savePreviousResponseId(result.id);
+            // return result.response;
         } catch (e) {
             console.error('xAi response request error: ', e);
             return null;
@@ -113,6 +115,9 @@ export class XAIPerson implements IAIPerson {
 
     private async updateContextHistory() {
         const lastProcessedDate = await XAIProcessedMessageEntity.getLastDateProcessed(this.sysname);
+
+        console.log('lastProcessedDate: ', lastProcessedDate);
+
         const unprocessedMessages = (lastProcessedDate
             ? await MessageEntity.getSince(lastProcessedDate)
             : await MessageEntity.getLast(100))
@@ -134,19 +139,26 @@ export class XAIPerson implements IAIPerson {
                 + '- Message Content (END)\n'
                 + '---';
 
-            let content = '';
-            for (const msg of unprocessedMessages) {
-                const data = msg.getData();
+            const chunks = chunk(unprocessedMessages, 20);
 
-                content += contentItemTemplate
-                    .replace('$$username$$', msg.from_username)
-                    .replace('$$first_name$$', String(data.from?.first_name))
-                    .replace('$$last_name$$', String(data.from?.last_name))
-                    .replace('$$date$$', msg.date)
-                    .replace('$$text$$', String(data.text));
+            console.log('unprocessedMessages: ', unprocessedMessages);
+
+            for (const chunk of chunks) {
+                let content = '';
+
+                for (const msg of chunk) {
+                    const data = msg.getData();
+
+                    content += contentItemTemplate
+                        .replace('$$username$$', msg.from_username)
+                        .replace('$$first_name$$', String(data.from?.first_name))
+                        .replace('$$last_name$$', String(data.from?.last_name))
+                        .replace('$$date$$', msg.date)
+                        .replace('$$text$$', String(data.text));
+                }
+
+                // await this.requestResponse(prompt.replace('$$content$$', content));
             }
-            prompt = prompt.replace('$$content$$', content);
-            await this.requestResponse(prompt);
         } catch (e) {
             console.error('Error processing context messages:', e);
             return;
