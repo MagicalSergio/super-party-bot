@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "concurrently \"tsc --watch\" \"nodemon dist\"",
     "build": "tsc",
-    "start": "node ./dist/index"
+    "start": "node ./dist/index",
+    "migrate-dates": "node --loader ts-node/esm ./datesMigrate.ts --dry-run"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
@@ -19,6 +20,7 @@
     "@types/node-fetch": "^2.6.13",
     "concurrently": "^9.2.1",
     "nodemon": "^3.1.11",
+    "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {
