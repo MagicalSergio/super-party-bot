@@ -9,6 +9,7 @@ import { DateTime } from 'luxon';
 import { pluralize } from './utils/pluralize.js';
 import { AIPersonalityEntity } from './modules/AIModel/entity/AIPersonality.entity.js';
 import { MessageEntity } from './entity/Message.entity.js';
+import { PROJECT_ROOT_DIR } from './utils/findProjectRoot.js';
 import type { SeasonType } from './SeasonHandler.js';
 import type { Context, Api, RawApi } from 'grammy';
 import type { Message, Update } from 'grammy/types';
@@ -422,6 +423,11 @@ export class PartyBot<C extends Context = Context> {
                 await arr[i]!();
                 i++;
             }
-        })
+        });
+
+        this.bot.command('fs', async () => {
+            console.log('PROJECT_ROOT_DIR: ', PROJECT_ROOT_DIR);
+            return await this.sendMessage('fs');
+        });
     }
 }
