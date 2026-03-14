@@ -70,7 +70,7 @@ export class XAIPerson implements IAIPerson {
             const body: IXAIAPIResponsesBody = {
                 input: message,
                 model: this.model,
-                temperature: 1.8,
+                temperature: 0.2,
             };
 
             const prevResId = await XAIResponseHistoryEntity.getLastResponseId(this.sysname);
@@ -131,6 +131,7 @@ export class XAIPerson implements IAIPerson {
         try {
             let prompt = 'Это сообщение содержит недостающую тебе историю чата\n'
                 + 'Запомни участников чата и общий контекст беседы\n'
+                + 'Ответь на это сообщение "ок"\n'
                 + '(Начало сообщения)\n'
                 + '$$content$$\n'
                 + '(Конец сообщения)';
