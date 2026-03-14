@@ -11,7 +11,7 @@ import { AIPersonalityEntity } from './modules/AIModel/entity/AIPersonality.enti
 import { MessageEntity } from './entity/Message.entity.js';
 import type { SeasonType } from './SeasonHandler.js';
 import type { Context, Api, RawApi } from 'grammy';
-import type { Message } from 'grammy/types';
+import type { Message, Update } from 'grammy/types';
 import type { IAIPerson } from './modules/AIModel/interfaces/IAIPerson.js';
 
 interface SeasonPollOptions {
@@ -20,23 +20,26 @@ interface SeasonPollOptions {
 }
 
 export class PartyBot<C extends Context = Context> {
-    private bot: Bot<C, Api<RawApi>>;
+    public bot: Bot<C, Api<RawApi>>;
     private aiPerson: IAIPerson | undefined;
 
     constructor() {
         this.bot = new Bot(process.env.TG_API_KEY!);
+    }
 
+    public async init() {
         if (process.env.BIND_TEST) {
             this.bindTestCommand();
         }
 
         this.initOnMessage();
+        this.startSeasonCron();
+
+        await this.bot.init();
 
         this.bot
             .start()
             .catch((e) => console.error('Something bad happened: ', e));
-
-        this.startSeasonCron();
     }
 
     public attachAIPersonality(person: IAIPerson) {
@@ -45,10 +48,21 @@ export class PartyBot<C extends Context = Context> {
 
     public async sendMessage(msg: string) {
         try {
-            return await this.bot.api.sendMessage(process.env.CHAT_ID!, msg);
+            const message = await this.bot.api.sendMessage(process.env.CHAT_ID!, msg);
+            return await this.saveMessageEntity(message);
         } catch (e) {
             console.error('Error while sending message: ', e);
         }
+    }
+
+    private async saveMessageEntity(msg: Message & Update.NonChannel | Message.TextMessage) {
+        const entity = MessageEntity.create();
+        entity.message_id = msg.message_id;
+        entity.chat_id = msg.chat.id;
+        entity.from_username = msg.from?.username || '';
+        entity.date = String(DateTime.now().valueOf());
+        entity.json = JSON.stringify(msg);
+        await entity.save();
     }
 
     private extractMentionsUsernames(message: Message): string[] {
@@ -61,7 +75,7 @@ export class PartyBot<C extends Context = Context> {
         });
     }
 
-    private dropMentionsFromMessage(message: Message): string {
+    private getMessageText(message: Message): string {
         if (!message.text) {
             return '';
         }
@@ -75,23 +89,37 @@ export class PartyBot<C extends Context = Context> {
 
     private initOnMessage() {
         this.bot.on('message', async (ctx) => {
+            if (String(ctx.chatId) !== process.env.CHAT_ID!) {
+                return;
+            }
+
             // todo: implement queue
-            // Save message into DB
-            const msg = MessageEntity.create();
-            msg.message_id = ctx.msgId;
-            msg.chat_id = ctx.chat.id;
-            msg.from_username = ctx.message.from.username || '';
-            msg.date = String(DateTime.now().valueOf());
-            msg.json = JSON.stringify(ctx.message);
-            await msg.save();
+            await this.saveMessageEntity(ctx.message);
 
             // AI Job
-            const mentions = this.extractMentionsUsernames(ctx.message);
-            const message = this.dropMentionsFromMessage(ctx.message);
-            if (mentions.includes(this.bot.botInfo.username) && this.aiPerson) {
-                const personResponse = await this.aiPerson.response(message);
-                if (!personResponse) return await this.sendMessage('Извините, ошибка...');
-                await this.sendMessage(personResponse);
+            if (this.aiPerson) {
+                const message = this.getMessageText(ctx.message);
+                const mentions = this.extractMentionsUsernames(ctx.message);
+                const botMentioned = mentions.includes(this.bot.botInfo.username);
+                const reply = ctx.message.reply_to_message;
+                const botReplied = ctx.message.reply_to_message?.from?.username === this.bot.botInfo.username;
+
+                if (botMentioned || botReplied) {
+                    const messageContext = {
+                        from: {
+                            firstName: ctx.message.from.first_name,
+                            lastName: ctx.message.from.last_name,
+                            username: ctx.message.from.username,
+                            date: DateTime.now().setZone(TIMEZONE).toISO()!,
+                        },
+                        replyBotMessage: botReplied
+                            ? { text: reply!.text! }
+                            : undefined,
+                    };
+                    const response = await this.aiPerson.response(message, messageContext);
+                    if (!response) return await this.sendMessage('Извините, ошибка...');
+                    return await this.sendMessage(response);
+                }
             }
         });
     }
@@ -332,12 +360,15 @@ export class PartyBot<C extends Context = Context> {
         });
 
         this.bot.command('ai', async (ctx) => {
-            if (!this.aiPerson) {
-                await this.sendMessage('AI model not set');
-                return;
-            };
+            if (!this.aiPerson) return;
 
-            const response = await this.aiPerson.response(ctx.match);
+            const response = await this.aiPerson.response(ctx.match, {
+                from: {
+                    firstName: ctx.message?.from.first_name,
+                    lastName: ctx.message?.from.last_name,
+                    username: ctx.message?.from.username,
+                }
+            });
             if (!response) {
                 console.warn('Error requesting AI model response');
                 return;
@@ -367,10 +398,10 @@ export class PartyBot<C extends Context = Context> {
             const arr = [longPromise, shortPromise];
 
             let i = 0;
-            while(arr[i]) {
+            while (arr[i]) {
                 await arr[i]!();
                 i++;
             }
-        })
+        });
     }
 }

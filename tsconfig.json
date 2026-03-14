@@ -23,7 +23,7 @@
     "declarationMap": true,
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    "exactOptionalPropertyTypes": false,
     "strictPropertyInitialization": false,
     // Style Options
     // "noImplicitReturns": true,
@@ -35,7 +35,7 @@
     // Recommended Options
     "strict": true,
     "jsx": "react-jsx",
-    "verbatimModuleSyntax": true,
+    "verbatimModuleSyntax": false,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
@@ -43,4 +43,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
   },
+
+  "include": ["index.ts", "src/**/*"],
+  "exclude": ["src/db/migrations/**/*", "dist", "node_modules"]
 }
