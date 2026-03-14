@@ -6,8 +6,15 @@ import { PartyBot } from './src/PartyBot.js';
 import { PartyBotAPI } from './src/PartyBotAPI.js';
 import { XAIPerson } from './src/modules/AIModel/impl/XAIPerson.js';
 import { AIPersonalityEntity } from './src/modules/AIModel/entity/AIPersonality.entity.js';
+import { AppDataSource } from './src/db/index.js';
 
 async function main() {
+    try {
+        await AppDataSource.initialize();
+    } catch (e) {
+        console.error('DB error: ', e);
+    }
+
     const bot = new PartyBot();
 
     const person = await AIPersonalityEntity.getBySysname('party-bot');

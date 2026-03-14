@@ -19,13 +19,11 @@ const AppDataSource = new DataSource({
         XAIResponseHistoryEntity,
         MessageEntity,
     ],
-    synchronize: process.env.MODE === 'dev',
+    synchronize: false,
+    migrations: [import.meta.dirname + '/migrations/*{.js,.ts}'],
+    migrationsRun: false,
+    migrationsTableName: 'migrations',
+    migrationsTransactionMode: 'all',
 });
-
-try {
-    await AppDataSource.initialize();
-} catch (e) {
-    console.error('DB error: ', e);
-}
 
 export { AppDataSource };
