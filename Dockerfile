@@ -8,7 +8,6 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
 
 # Копируем sslocal из официального образа shadowsocks-rust
 FROM ghcr.io/shadowsocks/sslocal-rust:latest AS sslocal

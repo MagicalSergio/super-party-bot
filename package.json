@@ -12,9 +12,9 @@
     "start": "node ./dist/index",
     "migrate-dates": "node --loader ts-node/esm ./datesMigrate.ts",
     "typeorm": "typeorm-ts-node-esm",
-    "migrations:generate": "typeorm-ts-node-esm migration:generate -d ./src/db/index.ts",
-    "migrations:run": "typeorm-ts-node-esm migration:run -d ./src/db/index.ts",
-    "migrations:show": "typeorm-ts-node-esm migration:show -d ./src/db/index.ts"
+    "migrations:generate": "MIGRATION_RUN=1 typeorm-ts-node-esm migration:generate src/db/migrations/Migration -d ./src/db/index.ts",
+    "migrations:run": "MIGRATION_RUN=1 typeorm-ts-node-esm migration:run -d ./src/db/index.ts",
+    "migrations:show": "MIGRATION_RUN=1 typeorm-ts-node-esm migration:show -d ./src/db/index.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
@@ -28,10 +28,12 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@types/lodash-es": "^4.17.12",
     "better-sqlite3": "^12.6.2",
     "dotenv": "^17.2.4",
     "express": "^5.2.1",
     "grammy": "^1.39.3",
+    "lodash-es": "^4.17.23",
     "luxon": "^3.7.2",
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",

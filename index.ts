@@ -13,11 +13,13 @@ async function main() {
         await AppDataSource.initialize();
     } catch (e) {
         console.error('DB error: ', e);
+        return;
     }
 
     const bot = new PartyBot();
+    await bot.init();
 
-    const person = await AIPersonalityEntity.getBySysname('party-bot');
+    const person = await AIPersonalityEntity.getBySysname(process.env.AI_PERSONALITY_SYSNAME || '');
 
     if (person) {
         bot.attachAIPersonality(new XAIPerson({
@@ -25,6 +27,7 @@ async function main() {
             name: person.name,
             model: person.model,
             instructions: person.instructions,
+            username: bot.bot.botInfo.username,
         }));
     }
 
