@@ -13,4 +13,6 @@ until nc -z 127.0.0.1 1080; do
 done
 echo "sslocal is ready"
 
+npm run build
+
 exec npm run start
