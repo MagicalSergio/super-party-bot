@@ -121,7 +121,7 @@ export class XAIPerson implements IAIPerson {
 
         const unprocessedMessages = (lastProcessedDate
             ? await MessageEntity.getSince(lastProcessedDate)
-            : await MessageEntity.getLast(160)
+            : await MessageEntity.getLast(200)
         ).filter((msg) => (
             msg.from_username !== this.username // сообщение не от самого бота
             && msg.getData().reply_to_message?.from?.username !== this.username // сообщение не для бота (reply)
