@@ -3,9 +3,10 @@ import { DataSource } from 'typeorm';
 import { PollEntity } from '../entity/Poll.entity.js';
 import { SeasonPollEntity } from '../entity/SeasonPoll.entity.js';
 import { SeasonScheduleNotifyEntity } from '../entity/SeasonScheduleNotify.entity.js';
+import { MessageEntity } from '../entity/Message.entity.js';
 import { AIPersonalityEntity } from '../modules/AIModel/entity/AIPersonality.entity.js';
 import { XAIResponseHistoryEntity } from '../modules/AIModel/entity/XAIResponseHistory.entity.js';
-import { MessageEntity } from '../entity/Message.entity.js';
+import { XAIProcessedMessageEntity } from '../modules/AIModel/entity/XAIProcessedMessage.entity.js';
 import { PROJECT_ROOT_DIR } from '../utils/findProjectRoot.js';
 
 const AppDataSource = new DataSource({
@@ -18,9 +19,10 @@ const AppDataSource = new DataSource({
         AIPersonalityEntity,
         XAIResponseHistoryEntity,
         MessageEntity,
+        XAIProcessedMessageEntity,
     ],
     synchronize: false,
-    migrations: [import.meta.dirname + '/migrations/*{.js,.ts}'],
+    migrations: process.env.MIGRATION_RUN ? [NodePath.join(PROJECT_ROOT_DIR, 'src/db/migrations/*{.js,.ts}')] : undefined,
     migrationsRun: false,
     migrationsTableName: 'migrations',
     migrationsTransactionMode: 'all',
