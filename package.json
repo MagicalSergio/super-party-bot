@@ -10,7 +10,11 @@
     "dev": "concurrently \"tsc --watch\" \"nodemon dist\"",
     "build": "tsc",
     "start": "node ./dist/index",
-    "migrate-dates": "node --loader ts-node/esm ./datesMigrate.ts"
+    "migrate-dates": "node --loader ts-node/esm ./datesMigrate.ts",
+    "typeorm": "typeorm-ts-node-esm",
+    "migrations:generate": "typeorm-ts-node-esm migration:generate -d ./src/db/index.ts",
+    "migrations:run": "typeorm-ts-node-esm migration:run -d ./src/db/index.ts",
+    "migrations:show": "typeorm-ts-node-esm migration:show -d ./src/db/index.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
