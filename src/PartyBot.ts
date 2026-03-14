@@ -7,12 +7,12 @@ import { SeasonPollEntity } from './entity/SeasonPoll.entity.js';
 import { SeasonScheduleNotifyEntity } from './entity/SeasonScheduleNotify.entity.js';
 import { DateTime } from 'luxon';
 import { pluralize } from './utils/pluralize.js';
+import { AIPersonalityEntity } from './modules/AIModel/entity/AIPersonality.entity.js';
+import { MessageEntity } from './entity/Message.entity.js';
 import type { SeasonType } from './SeasonHandler.js';
 import type { Context, Api, RawApi } from 'grammy';
 import type { Message } from 'grammy/types';
 import type { IAIPerson } from './modules/AIModel/interfaces/IAIPerson.js';
-import { AIPersonalityEntity } from './modules/AIModel/entity/AIPersonality.entity.js';
-import { MessageEntity } from './entity/Message.entity.js';
 
 interface SeasonPollOptions {
     text: string;
@@ -81,7 +81,7 @@ export class PartyBot<C extends Context = Context> {
             msg.message_id = ctx.msgId;
             msg.chat_id = ctx.chat.id;
             msg.from_username = ctx.message.from.username || '';
-            msg.date = DateTime.now().setZone(TIMEZONE).toISO()!;
+            msg.date = String(DateTime.now().valueOf());
             msg.json = JSON.stringify(ctx.message);
             await msg.save();
 
@@ -114,19 +114,13 @@ export class PartyBot<C extends Context = Context> {
                     }
                 }
 
-                const nowISO = now.toISO();
-                if (!nowISO) {
-                    console.warn('Failed to convert now to ISO date');
-                    return;
-                }
-
-                const seasonSchedule = await SeasonScheduleNotifyEntity.findByDate(nowISO);
+                const seasonSchedule = await SeasonScheduleNotifyEntity.findByDate(String(now.valueOf()));
                 if (!seasonSchedule) {
-                    return await this.createSeasonPoll(SeasonHandler.getSeasonInfo(nowISO).nextSeason!);
+                    return await this.createSeasonPoll(SeasonHandler.getSeasonInfo(String(now.valueOf())).nextSeason!);
                 }
 
                 if (!seasonChanged) {
-                    return await this.seasonCountdown(nowISO);
+                    return await this.seasonCountdown(String(now.valueOf()));
                 }
             } catch (e) {
                 console.error('Season countdown failed!', e);
@@ -136,13 +130,7 @@ export class PartyBot<C extends Context = Context> {
 
         cron.schedule('0 0 1 3,6,9,12 *', async () => {
             try {
-                const nowISO = DateTime.now().setZone(TIMEZONE).toISO();
-                if (!nowISO) {
-                    console.warn('Failed to convert now to ISO date');
-                    return;
-                }
-
-                const seasonInfo = SeasonHandler.getSeasonInfo(nowISO);
+                const seasonInfo = SeasonHandler.getSeasonInfo(String(DateTime.now().valueOf()));
                 if (!seasonInfo.curSeason || !seasonInfo.nextSeason) return;
 
                 await this.seasonCongratulate(seasonInfo.curSeason);
@@ -157,8 +145,8 @@ export class PartyBot<C extends Context = Context> {
         return this.sendMessage(SeasonHandler.SEASON_CONGRATS[season]);
     }
 
-    private async seasonCountdown(dateISO: string) {
-        const { nextSeason, daysUntilNextSeason } = SeasonHandler.getSeasonInfo(dateISO);
+    private async seasonCountdown(timestamp: string) {
+        const { nextSeason, daysUntilNextSeason } = SeasonHandler.getSeasonInfo(timestamp);
 
         if (!nextSeason || !daysUntilNextSeason) {
             throw new Error('Error calculating season info');
@@ -169,15 +157,15 @@ export class PartyBot<C extends Context = Context> {
             + `${pluralize(daysUntilNextSeason, ["день", "дня", "дней"])}! `
             + `${SeasonHandler.SEASON_EMOJIS[nextSeason]}`;
 
-        const currentSchedule = await SeasonScheduleNotifyEntity.findByDate(dateISO);
+        const currentSchedule = await SeasonScheduleNotifyEntity.findByDate(timestamp);
         if (!currentSchedule) {
             await this.sendMessage(msg);
             return;
         }
 
-        const current = DateTime.fromISO(dateISO).setZone(TIMEZONE);
-        const startDate = DateTime.fromISO(currentSchedule.start_date).setZone(TIMEZONE);
-        const endDate = DateTime.fromISO(currentSchedule.end_date).setZone(TIMEZONE);
+        const current = DateTime.fromJSDate(new Date(timestamp)).setZone(TIMEZONE);
+        const startDate = DateTime.fromJSDate(new Date(currentSchedule.start_date)).setZone(TIMEZONE);
+        const endDate = DateTime.fromJSDate(new Date(currentSchedule.end_date)).setZone(TIMEZONE);
 
         const lastDayDiff = endDate.diff(current, 'day').days;
         if (0 < lastDayDiff && lastDayDiff <= 1) {
@@ -214,13 +202,8 @@ export class PartyBot<C extends Context = Context> {
         dbPoll.options = JSON.stringify(options);
         dbPoll.message_id = poll.message_id;
 
-        const untilISO = DateTime.now().setZone(TIMEZONE).plus({ day: 1 }).startOf('day').toISO();
-        if (!untilISO) {
-            console.warn('Failed to convert until_date to ISO date');
-            return;
-        }
-
-        dbPoll.until_date = untilISO;
+        const untilTimestamp = DateTime.now().setZone(TIMEZONE).plus({ day: 1 }).startOf('day').valueOf();
+        dbPoll.until_date = String(untilTimestamp);
         await dbPoll.save();
 
         const dbSeasonPoll = new SeasonPollEntity();
@@ -270,36 +253,30 @@ export class PartyBot<C extends Context = Context> {
 
             if (!poll) {
                 console.warn('Process season polls: poll not found!');
-                return;
+                console.log('Unprocessed poll: ', p);
+                continue;
+            }
+
+            if (poll.win_index === -1) {
+                console.warn('Process season polls: poll not finished!');
+                console.log(poll);
+                continue;
             }
 
             const ssn = new SeasonScheduleNotifyEntity();
-
             const options = JSON.parse(poll.options) as SeasonPollOptions[];
             ssn.periodicity = options[poll.win_index]!.periodicity;
-
             ssn.start_date = poll.until_date;
 
-            const nowISO = DateTime.now().setZone(TIMEZONE).toISO();
-            if (!nowISO) {
-                console.warn('Failed to convert now to ISO date');
-                return;
-            }
-            const seasonInfo = SeasonHandler.getSeasonInfo(nowISO);
-
-            const endISO = DateTime
+            const seasonInfo = SeasonHandler.getSeasonInfo(String(DateTime.now().valueOf()));
+            const endTimestamp = DateTime
                 .now()
                 .setZone(TIMEZONE)
                 .set({ month: SeasonHandler.MONTHS_SEASONS[seasonInfo.nextSeason!][0]! })
                 .startOf('month')
-                .toISO();
+                .valueOf();
 
-            if (!endISO) {
-                console.warn('Failed to convert end_date to ISO date');
-                return;
-            }
-
-            ssn.end_date = endISO;
+            ssn.end_date = String(endTimestamp);
             await ssn.save();
 
             p.is_processed = true;
@@ -314,7 +291,8 @@ export class PartyBot<C extends Context = Context> {
                 person.name = 'ПатиБот';
                 person.model = 'grok-4-1-fast-non-reasoning';
                 person.instructions = 'Ты - ПатиБот. Бот для теста';
-                person.sysname = 'party-bot-test';
+                person.sysname = 'party-bot-test-2';
+                console.log('person: ', person);
                 await person.save();
                 await this.sendMessage('Персона создана');
             } catch (e) {
@@ -324,23 +302,25 @@ export class PartyBot<C extends Context = Context> {
 
         this.bot.command('db', async () => {
             const rslt = await AIPersonalityEntity.find();
-            console.log('rslt: ', rslt);
+            await this.sendMessage('ok');
         });
 
         this.bot.command('test', async () => {
-            await this.createSeasonPoll('summer');
+            await this.createSeasonPoll('autumn');
         });
 
         this.bot.command('pp', async () => {
             await this.processPolls();
+            await this.sendMessage('ok');
         });
 
         this.bot.command('psp', async () => {
             await this.processSeasonPolls();
+            await this.sendMessage('ok');
         });
 
         this.bot.command('d', async () => {
-            await this.seasonCountdown('2026-05-31T15:00:00.000+03:00');
+            await this.seasonCountdown('2026-06-01T15:00:00.000+03:00');
         });
 
         this.bot.command('e', async () => {
@@ -352,7 +332,10 @@ export class PartyBot<C extends Context = Context> {
         });
 
         this.bot.command('ai', async (ctx) => {
-            if (!this.aiPerson) return;
+            if (!this.aiPerson) {
+                await this.sendMessage('AI model not set');
+                return;
+            };
 
             const response = await this.aiPerson.response(ctx.match);
             if (!response) {
