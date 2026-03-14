@@ -66,10 +66,10 @@ export abstract class SeasonHandler {
 
     private static date: string;
 
-    public static getSeasonInfo(dateISO: string): SeasonsInfo {
-        SeasonHandler.date = dateISO;
+    public static getSeasonInfo(timestamp: string): SeasonsInfo {
+        SeasonHandler.date = timestamp;
 
-        const date = DateTime.fromISO(dateISO).setZone(TIMEZONE);
+        const date = DateTime.fromJSDate(new Date(timestamp)).setZone(TIMEZONE);
 
         const curSeasonIndex = SeasonHandler.getCurrentSeasonIndex();
         const curSeason = curSeasonIndex != null
@@ -97,7 +97,7 @@ export abstract class SeasonHandler {
     }
 
     private static getCurrentSeasonIndex(): number | null {
-        const now = DateTime.fromISO(this.date).setZone(TIMEZONE);
+        const now = DateTime.fromJSDate(new Date(this.date)).setZone(TIMEZONE);
         let index: number | null = null
         Object.keys(SeasonHandler.MONTHS_SEASONS).forEach((seasonType) => {
             if (SeasonHandler.MONTHS_SEASONS[seasonType as SeasonType].includes(now.month)) {

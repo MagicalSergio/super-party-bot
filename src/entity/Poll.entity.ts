@@ -1,6 +1,5 @@
 import { DateTime } from 'luxon';
 import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import { TIMEZONE } from '../const.js';
 
 @Entity()
 export class PollEntity extends BaseEntity {
@@ -22,7 +21,7 @@ export class PollEntity extends BaseEntity {
     static async getExpired(): Promise<PollEntity[]> {
         return this.createQueryBuilder("poll")
             .where("poll.win_index = :winIndex", { winIndex: -1 })
-            .andWhere("poll.until_date <= :now", { now: DateTime.now().setZone(TIMEZONE).toISO() })
+            .andWhere("poll.until_date <= :now", { now: String(DateTime.now().valueOf()) })
             .getMany();
     }
 }
