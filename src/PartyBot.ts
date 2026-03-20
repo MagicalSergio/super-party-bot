@@ -9,6 +9,7 @@ import { DateTime } from 'luxon';
 import { pluralize } from './utils/pluralize.js';
 import { AIPersonalityEntity } from './modules/AIModel/entity/AIPersonality.entity.js';
 import { MessageEntity } from './entity/Message.entity.js';
+import { agent } from './utils/socksProxyAgent.js';
 import type { SeasonType } from './SeasonHandler.js';
 import type { Context, Api, RawApi } from 'grammy';
 import type { Message, Update } from 'grammy/types';
@@ -24,7 +25,13 @@ export class PartyBot<C extends Context = Context> {
     private aiPerson: IAIPerson | undefined;
 
     constructor() {
-        this.bot = new Bot(process.env.TG_API_KEY!);
+        this.bot = new Bot(process.env.TG_API_KEY!, {
+            client: {
+                baseFetchConfig: {
+                    agent: agent
+                }
+            }
+        });
     }
 
     public async init() {
