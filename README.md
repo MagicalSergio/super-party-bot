@@ -2,7 +2,7 @@
 ## ru
 - AI-чат ассистент с контекстом на базе Grok в Телеграме (+ простой бот-счётчик времени до смены сезонов)
 - Фан-проект для чата друзей.
-- Использовал: Grammy (telegram API), SQLite в связке с TypeORM, Shadowsocks для обхода блокировок (ныне не актуально и не работает).|
+- Использовал: Grammy (telegram API), SQLite в связке с TypeORM, Shadowsocks для обхода блокировок (ныне не актуально и не работает).
 - Предусмотрен функционал для переключения бота на разные личности, используя `system` промпт, при этом каждая личность сохраняет свой контекст.
 ## en
 - An AI-chat assistant with context handling powered by Grok implemented in Telegram Messenger (+ simple bot-timer on seasons change)<br>
